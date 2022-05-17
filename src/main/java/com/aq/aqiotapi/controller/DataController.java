@@ -34,18 +34,42 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 public class DataController {
 
-    private static String dbUrl  = String.valueOf(PropertyUtil.getProperties().getProperty("influx.url"));
-    private static char[] token = String.valueOf(PropertyUtil.getProperties().getProperty("influx.token")).toCharArray();
-    private static String org = String.valueOf(PropertyUtil.getProperties().getProperty("influx.org"));
-    private static String bucket  = String.valueOf(PropertyUtil.getProperties().getProperty("influx.bucket"));
-
     InfluxDBClient influxDBClient;
     WriteApiBlocking writeApi;
+
+    private static final String dbUrl  = String.valueOf(PropertyUtil.getProperties().getProperty("influx.url"));
+    private static final char[] token = String.valueOf(PropertyUtil.getProperties().getProperty("influx.token")).toCharArray();
+    private static final String org = String.valueOf(PropertyUtil.getProperties().getProperty("influx.org"));
+    private static final String bucket  = String.valueOf(PropertyUtil.getProperties().getProperty("influx.bucket"));
 
     DataController() {
         influxDBClient = InfluxDBClientFactory.create(dbUrl, token, org, bucket);
         writeApi = influxDBClient.getWriteApiBlocking();
     }
 
+    // GET. Collection of all resources.
+    @GetMapping("/temps")
+    public CollectionModel<EntityModel<Temperature>> all() {
 
+        List<EntityModel<Temperature>> temperatures = new ArrayList<EntityModel<Temperature>>();
+
+        String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
+
+        QueryApi queryApi = influxDBClient.getQueryApi();
+
+        List<FluxTable> tables = queryApi.query(flux);
+        for (FluxTable fluxTable : tables) {
+            List<FluxRecord> records = fluxTable.getRecords();
+            for (FluxRecord fluxRecord : records) {
+                Temperature temperature = new Temperature();
+                temperature.setLocation("Placeholder");
+                temperature.setValue("Placeholer");
+                temperature.setTime(fluxRecord.getTime());
+                EntityModel<Temperature> temperatureEntityModel = EntityModel.of(temperature);
+                temperatures.add(temperatureEntityModel);
+            }
+        }
+
+        return CollectionModel.of(temperatures, linkTo(methodOn(DataController.class).all()).withSelfRel());
+    }
 }
