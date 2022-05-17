@@ -1,11 +1,17 @@
 package com.aq.aqiotapi.controller;
 
+import com.aq.aqiotapi.PostBody;
 import com.aq.aqiotapi.Temperature;
 import com.aq.aqiotapi.utils.PropertyUtil;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,5 +77,24 @@ public class DataController {
         }
 
         return CollectionModel.of(temperatures, linkTo(methodOn(DataController.class).all()).withSelfRel());
+    }
+
+    // POST. Post of new resource.
+    @PostMapping("/temps")
+    ResponseEntity<?> newResource(@RequestBody PostBody body) {
+
+        Temperature temperature = new Temperature();
+        temperature.setLocation(body.getEvent());
+        temperature.setValue(body.getPayload());
+        temperature.setTime(Instant.now());
+
+        writeApi.writeMeasurement( WritePrecision.NS, temperature);
+        EntityModel<Temperature> entityModel = EntityModel.of(temperature);
+
+        System.out.println("Data ingested to influx.");
+
+        return ResponseEntity //
+                .created(URI.create("/temps/")) //
+                .body(entityModel);
     }
 }
