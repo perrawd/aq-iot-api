@@ -1,4 +1,4 @@
-package com.aq.aqiotapi;
+package com.aq.aqiotapi.model;
 
 import lombok.Data;
 

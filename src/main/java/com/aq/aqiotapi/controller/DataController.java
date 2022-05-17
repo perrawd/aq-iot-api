@@ -1,41 +1,34 @@
 package com.aq.aqiotapi.controller;
 
-import com.aq.aqiotapi.PostBody;
+import com.aq.aqiotapi.model.Measurement;
+import com.aq.aqiotapi.model.PostBody;
 import com.aq.aqiotapi.Temperature;
 import com.aq.aqiotapi.utils.PropertyUtil;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.net.URI;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
-import com.influxdb.annotations.Column;
-import com.influxdb.annotations.Measurement;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.QueryApi;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
-import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.IanaLinkRelations;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -88,23 +81,22 @@ public class DataController {
 
         String[] payload = body.getPayload().split(",");
 
-        int temp = Integer.parseInt(payload[0].replace("[", "").trim());
+        int temperature = Integer.parseInt(payload[0].replace("[", "").trim());
         int humidity = Integer.parseInt(payload[1].replace("[", "").trim());
-        //System.out.println("Localdatetime: " + LocalDateTime.parse(a[2].replace("]", "")).toString());
 
-        Instant dt = LocalDateTime.parse(payload[2]
+        Instant dateTime = LocalDateTime.parse(payload[2]
                                   .replace("]", "")
                                   .trim())
                                   .atZone(ZoneId.of("Europe/Stockholm"))
                                   .toInstant().plus(Duration.ofHours(2));
 
-        Temperature temperature = new Temperature();
-        temperature.setLocation(body.getEvent());
-        temperature.setValue(body.getPayload());
-        temperature.setTime(dt);
+        Measurement measurement = new Measurement();
+        measurement.setTemperature(temperature);
+        measurement.setHumidity(humidity);
+        measurement.setTime(dateTime);
 
-        writeApi.writeMeasurement( WritePrecision.NS, temperature);
-        EntityModel<Temperature> entityModel = EntityModel.of(temperature);
+        writeApi.writeMeasurement( WritePrecision.NS, measurement);
+        EntityModel<Measurement> entityModel = EntityModel.of(measurement);
 
         System.out.println("Data ingested to influx.");
 
