@@ -62,8 +62,8 @@ public class DataController {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
                 Temperature temperature = new Temperature();
-                temperature.setLocation("Placeholder");
-                temperature.setValue("Placeholer");
+                temperature.setLocation(fluxRecord.getValueByKey("location").toString());
+                temperature.setValue(fluxRecord.getValueByKey("_value").toString());
                 temperature.setTime(fluxRecord.getTime());
                 EntityModel<Temperature> temperatureEntityModel = EntityModel.of(temperature);
                 temperatures.add(temperatureEntityModel);
