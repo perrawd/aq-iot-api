@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 import com.influxdb.annotations.Column;
 import com.influxdb.annotations.Measurement;
@@ -83,10 +86,22 @@ public class DataController {
     @PostMapping("/temps")
     ResponseEntity<?> newResource(@RequestBody PostBody body) {
 
+        String[] payload = body.getPayload().split(",");
+
+        int temp = Integer.parseInt(payload[0].replace("[", "").trim());
+        int humidity = Integer.parseInt(payload[1].replace("[", "").trim());
+        //System.out.println("Localdatetime: " + LocalDateTime.parse(a[2].replace("]", "")).toString());
+
+        Instant dt = LocalDateTime.parse(payload[2]
+                                  .replace("]", "")
+                                  .trim())
+                                  .atZone(ZoneId.of("Europe/Stockholm"))
+                                  .toInstant().plus(Duration.ofHours(2));
+
         Temperature temperature = new Temperature();
         temperature.setLocation(body.getEvent());
         temperature.setValue(body.getPayload());
-        temperature.setTime(Instant.now());
+        temperature.setTime(dt);
 
         writeApi.writeMeasurement( WritePrecision.NS, temperature);
         EntityModel<Temperature> entityModel = EntityModel.of(temperature);
