@@ -1,9 +1,10 @@
 package com.aq.aqiotapi.controller;
 
-import com.aq.aqiotapi.model.Measurement;
+import com.aq.aqiotapi.model.DataRecord;
 import com.aq.aqiotapi.model.PostBody;
 import com.aq.aqiotapi.Temperature;
 import com.aq.aqiotapi.utils.PropertyUtil;
+import com.influxdb.client.write.Point;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,24 +52,26 @@ public class DataController {
 
     // GET. Collection of all resources.
     @GetMapping("/temps")
-    public CollectionModel<EntityModel<Temperature>> all() {
+    public CollectionModel<EntityModel<DataRecord>> all() {
 
-        List<EntityModel<Temperature>> temperatures = new ArrayList<EntityModel<Temperature>>();
+        List<EntityModel<DataRecord>> temperatures = new ArrayList<EntityModel<DataRecord>>();
 
         String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
 
         QueryApi queryApi = influxDBClient.getQueryApi();
-
+        System.out.println("This is a GET");
         List<FluxTable> tables = queryApi.query(flux);
+        System.out.println(tables);
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
-                Temperature temperature = new Temperature();
-                temperature.setLocation(fluxRecord.getValueByKey("location").toString());
-                temperature.setValue(fluxRecord.getValueByKey("_value").toString());
+                DataRecord temperature = new DataRecord();
+                temperature.setTemperature((Double) fluxRecord.getValueByKey("temperature"));
+                temperature.setHumidity((Double) fluxRecord.getValueByKey("humidity"));
                 temperature.setTime(fluxRecord.getTime());
-                EntityModel<Temperature> temperatureEntityModel = EntityModel.of(temperature);
+                EntityModel<DataRecord> temperatureEntityModel = EntityModel.of(temperature);
                 temperatures.add(temperatureEntityModel);
+                System.out.println("This is a record");
             }
         }
 
@@ -81,22 +84,33 @@ public class DataController {
 
         String[] payload = body.getPayload().split(",");
 
-        int temperature = Integer.parseInt(payload[0].replace("[", "").trim());
-        int humidity = Integer.parseInt(payload[1].replace("[", "").trim());
-
+        Double temperature = Double.parseDouble(payload[0].replace("[", "").trim());
+        Double humidity = Double.parseDouble(payload[1].replace("[", "").trim());
+        /*
         Instant dateTime = LocalDateTime.parse(payload[2]
                                   .replace("]", "")
                                   .trim())
                                   .atZone(ZoneId.of("Europe/Stockholm"))
-                                  .toInstant().plus(Duration.ofHours(2));
+                                  .toInstant();
+                //.plus(Duration.ofHours(2));
+        */
 
-        Measurement measurement = new Measurement();
-        measurement.setTemperature(temperature);
-        measurement.setHumidity(humidity);
-        measurement.setTime(dateTime);
+        DataRecord temp = new DataRecord();
+        temp.setTemperature(temperature);
+        temp.setHumidity(humidity);
+        // temp.setTime(dateTime);
+        String timestamp = payload[2]
+                .replace("]", "")
+                .trim();
 
-        writeApi.writeMeasurement( WritePrecision.NS, measurement);
-        EntityModel<Measurement> entityModel = EntityModel.of(measurement);
+        System.out.println(timestamp);
+
+        //writeApi.writeMeasurement( WritePrecision.NS, temp);
+        //writeApi.writeRecord(WritePrecision.NS, "temperature,location=north value=60.0");
+        writeApi.writeRecord(WritePrecision.NS, "data-record,value1=temperature,value2=humidity celcius=%s,percent=%s".formatted(temperature,humidity));
+
+
+        EntityModel<DataRecord> entityModel = EntityModel.of(temp);
 
         System.out.println("Data ingested to influx.");
 

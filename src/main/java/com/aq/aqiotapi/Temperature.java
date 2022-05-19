@@ -12,7 +12,7 @@ public class Temperature {
     String location;
 
     @Column
-    String value;
+    int value;
 
     @Column(timestamp = true)
     Instant time;
