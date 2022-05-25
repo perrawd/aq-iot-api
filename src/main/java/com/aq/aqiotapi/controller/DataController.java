@@ -56,22 +56,37 @@ public class DataController {
 
         List<EntityModel<DataRecord>> temperatures = new ArrayList<EntityModel<DataRecord>>();
 
-        String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
 
+        //String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
+
+        String flux = String.format("cel = from(bucket: \"%s\")\n" +
+                "    |> range(start: 0)\n" +
+                "    |> filter(fn: (r) => r._measurement == \"data-record\" and r._field == \"celcius\")\n" +
+                "\n" +
+                "hum = from(bucket: \"%<s\")\n" +
+                "    |> range(start: 0)\n" +
+                "    |> filter(fn: (r) => r._measurement == \"data-record\" and r._field == \"percent\")\n" +
+                "\n" +
+                "join(\n" +
+                "    tables: {c:cel, h:hum},\n" +
+                "    on: [\"_time\"],\n" +
+                ")", bucket);
+
+        System.out.println(flux);
         QueryApi queryApi = influxDBClient.getQueryApi();
-        System.out.println("This is a GET");
+
         List<FluxTable> tables = queryApi.query(flux);
         System.out.println(tables);
+
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
                 DataRecord temperature = new DataRecord();
-                temperature.setTemperature((Double) fluxRecord.getValueByKey("temperature"));
-                temperature.setHumidity((Double) fluxRecord.getValueByKey("humidity"));
+                temperature.setTemperature((Double) fluxRecord.getValueByKey("_value_c"));
+                temperature.setHumidity((Double) fluxRecord.getValueByKey("_value_h"));
                 temperature.setTime(fluxRecord.getTime());
                 EntityModel<DataRecord> temperatureEntityModel = EntityModel.of(temperature);
                 temperatures.add(temperatureEntityModel);
-                System.out.println("This is a record");
             }
         }
 
