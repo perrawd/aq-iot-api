@@ -2,17 +2,11 @@ package com.aq.aqiotapi.controller;
 
 import com.aq.aqiotapi.model.DataRecord;
 import com.aq.aqiotapi.model.PostBody;
-import com.aq.aqiotapi.Temperature;
 import com.aq.aqiotapi.utils.PropertyUtil;
-import com.influxdb.client.write.Point;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 import com.influxdb.client.InfluxDBClient;
@@ -53,9 +47,6 @@ public class DataController {
     public CollectionModel<EntityModel<DataRecord>> all() {
 
         List<EntityModel<DataRecord>> temperatures = new ArrayList<EntityModel<DataRecord>>();
-
-
-        //String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
 
         String flux = String.format("cel = from(bucket: \"%s\")\n" +
                 "    |> range(start: -3d)\n" +
@@ -101,27 +92,17 @@ public class DataController {
 
         Double temperature = Double.parseDouble(payload[0].replace("[", "").trim());
         Double humidity = Double.parseDouble(payload[1].replace("[", "").trim());
-        /*
-        Instant dateTime = LocalDateTime.parse(payload[2]
-                                  .replace("]", "")
-                                  .trim())
-                                  .atZone(ZoneId.of("Europe/Stockholm"))
-                                  .toInstant();
-                //.plus(Duration.ofHours(2));
-        */
 
         DataRecord temp = new DataRecord();
         temp.setTemperature(temperature);
         temp.setHumidity(humidity);
-        // temp.setTime(dateTime);
+
         String timestamp = payload[2]
                 .replace("]", "")
                 .trim();
 
         System.out.println(timestamp);
 
-        //writeApi.writeMeasurement( WritePrecision.NS, temp);
-        //writeApi.writeRecord(WritePrecision.NS, "temperature,location=north value=60.0");
         writeApi.writeRecord(WritePrecision.NS, "data-record,value1=temperature,value2=humidity celcius=%s,percent=%s".formatted(temperature,humidity));
 
 
