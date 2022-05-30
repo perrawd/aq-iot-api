@@ -18,13 +18,15 @@ public class WebSecurityConfig
     protected void configure(HttpSecurity http) throws Exception {
         // Security filters
         http
-                .csrf().disable()
-                .authorizeRequests()
-                .anyRequest()
-                .authenticated()
+                .cors()
                 .and()
-                .httpBasic()
-                .and()
-                .sessionManagement().sessionCreationPolicy(STATELESS);
+           .csrf().disable()
+           .authorizeRequests()
+           .anyRequest()
+           .authenticated()
+           .and()
+           .httpBasic()
+           .and()
+           .sessionManagement().sessionCreationPolicy(STATELESS);
     }
 }
