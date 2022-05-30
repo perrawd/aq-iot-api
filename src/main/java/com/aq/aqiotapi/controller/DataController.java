@@ -6,10 +6,7 @@ import com.aq.aqiotapi.Temperature;
 import com.aq.aqiotapi.utils.PropertyUtil;
 import com.influxdb.client.write.Point;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.Duration;
@@ -51,7 +48,8 @@ public class DataController {
     }
 
     // GET. Collection of all resources.
-    @GetMapping("/temps")
+    @GetMapping("/api")
+    @CrossOrigin(origins = "*", maxAge = 3600)
     public CollectionModel<EntityModel<DataRecord>> all() {
 
         List<EntityModel<DataRecord>> temperatures = new ArrayList<EntityModel<DataRecord>>();
@@ -60,11 +58,13 @@ public class DataController {
         //String flux = String.format("from(bucket:\"%s\") |> range(start: 0)", bucket);
 
         String flux = String.format("cel = from(bucket: \"%s\")\n" +
-                "    |> range(start: 0)\n" +
+                "    |> range(start: -3d)\n" +
+                "    |> tail(n: 100, offset: 0)\n" +
                 "    |> filter(fn: (r) => r._measurement == \"data-record\" and r._field == \"celcius\")\n" +
                 "\n" +
                 "hum = from(bucket: \"%<s\")\n" +
-                "    |> range(start: 0)\n" +
+                "    |> range(start: -3d)\n" +
+                "    |> tail(n: 100, offset: 0)\n" +
                 "    |> filter(fn: (r) => r._measurement == \"data-record\" and r._field == \"percent\")\n" +
                 "\n" +
                 "join(\n" +
@@ -94,7 +94,7 @@ public class DataController {
     }
 
     // POST. Post of new resource.
-    @PostMapping("/temps")
+    @PostMapping("/api")
     ResponseEntity<?> newResource(@RequestBody PostBody body) {
 
         String[] payload = body.getPayload().split(",");
@@ -130,7 +130,7 @@ public class DataController {
         System.out.println("Data ingested to influx.");
 
         return ResponseEntity //
-                .created(URI.create("/temps/")) //
+                .created(URI.create("/api/")) //
                 .body(entityModel);
     }
 }
